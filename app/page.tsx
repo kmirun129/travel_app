@@ -1,30 +1,56 @@
 "use client";
 
-import { useState } from "react";
-
-type Todo = {
-  id: number;
-  text: string;
-  done: boolean;
-};
+import { useEffect, useState } from "react";
+import { supabase, type Todo } from "@/lib/supabase";
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const addTodo = () => {
+  useEffect(() => {
+    const fetchTodos = async () => {
+      const { data } = await supabase
+        .from("todos")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (data) setTodos(data);
+      setLoading(false);
+    };
+    fetchTodos();
+  }, []);
+
+  const addTodo = async () => {
     const trimmed = input.trim();
     if (!trimmed) return;
-    setTodos([...todos, { id: Date.now(), text: trimmed, done: false }]);
+    const { data } = await supabase
+      .from("todos")
+      .insert({ text: trimmed, done: false })
+      .select()
+      .single();
+    if (data) setTodos([...todos, data]);
     setInput("");
   };
 
-  const toggleTodo = (id: number) => {
-    setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  const toggleTodo = async (id: number, done: boolean) => {
+    const { data } = await supabase
+      .from("todos")
+      .update({ done: !done })
+      .eq("id", id)
+      .select()
+      .single();
+    if (data) setTodos(todos.map((t) => (t.id === id ? data : t)));
   };
 
-  const deleteTodo = (id: number) => {
+  const deleteTodo = async (id: number) => {
+    await supabase.from("todos").delete().eq("id", id);
     setTodos(todos.filter((t) => t.id !== id));
+  };
+
+  const clearCompleted = async () => {
+    const ids = todos.filter((t) => t.done).map((t) => t.id);
+    await supabase.from("todos").delete().in("id", ids);
+    setTodos(todos.filter((t) => !t.done));
   };
 
   const remaining = todos.filter((t) => !t.done).length;
@@ -51,7 +77,7 @@ export default function Home() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="新しいタスクを入力..."
-            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition text-sm"
+            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-transparent transition text-sm"
           />
           <button
             onClick={addTodo}
@@ -63,7 +89,11 @@ export default function Home() {
         </div>
 
         {/* Todo list */}
-        {todos.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-16 text-slate-300">
+            <p className="text-sm">読み込み中...</p>
+          </div>
+        ) : todos.length === 0 ? (
           <div className="text-center py-16 text-slate-300">
             <div className="text-5xl mb-3">✓</div>
             <p className="text-sm">タスクを追加してはじめましょう</p>
@@ -79,11 +109,11 @@ export default function Home() {
               >
                 {/* Checkbox */}
                 <button
-                  onClick={() => toggleTodo(todo.id)}
+                  onClick={() => toggleTodo(todo.id, todo.done)}
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                     todo.done
-                      ? "bg-indigo-500 border-indigo-500"
-                      : "border-slate-300 hover:border-indigo-400"
+                      ? "bg-red-400 border-red-400"
+                      : "border-slate-300 hover:border-red-300"
                   }`}
                   aria-label={todo.done ? "未完了に戻す" : "完了にする"}
                 >
@@ -141,7 +171,7 @@ export default function Home() {
         {/* Clear completed */}
         {todos.some((t) => t.done) && (
           <button
-            onClick={() => setTodos(todos.filter((t) => !t.done))}
+            onClick={clearCompleted}
             className="mt-4 w-full py-2 text-xs text-slate-400 hover:text-rose-400 transition-colors"
           >
             完了済みをすべて削除
