@@ -27,10 +27,6 @@ export default function Home() {
     setTodos(todos.filter((t) => t.id !== id));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") addTodo();
-  };
-
   const remaining = todos.filter((t) => !t.done).length;
 
   return (
@@ -54,14 +50,13 @@ export default function Home() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
             placeholder="新しいタスクを入力..."
             className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition text-sm"
           />
           <button
             onClick={addTodo}
             disabled={!input.trim()}
-            className="px-5 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-200 text-white rounded-xl font-medium text-sm shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed"
+            className="px-5 py-3 bg-red-500 hover:bg-red-600 disabled:bg-red-200 text-white rounded-xl font-medium text-sm shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed"
           >
             追加
           </button>
