@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase, type Todo } from "@/lib/supabase";
+import { getClient, type Todo } from "@/lib/supabase";
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -10,7 +10,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchTodos = async () => {
-      const { data } = await supabase
+      const { data } = await getClient()
         .from("todos")
         .select("*")
         .order("created_at", { ascending: true });
@@ -23,34 +23,34 @@ export default function Home() {
   const addTodo = async () => {
     const trimmed = input.trim();
     if (!trimmed) return;
-    const { data } = await supabase
+    const { data } = await getClient()
       .from("todos")
       .insert({ text: trimmed, done: false })
       .select()
       .single();
-    if (data) setTodos([...todos, data]);
+    if (data) setTodos((prev) => [...prev, data]);
     setInput("");
   };
 
   const toggleTodo = async (id: number, done: boolean) => {
-    const { data } = await supabase
+    const { data } = await getClient()
       .from("todos")
       .update({ done: !done })
       .eq("id", id)
       .select()
       .single();
-    if (data) setTodos(todos.map((t) => (t.id === id ? data : t)));
+    if (data) setTodos((prev) => prev.map((t) => (t.id === id ? data : t)));
   };
 
   const deleteTodo = async (id: number) => {
-    await supabase.from("todos").delete().eq("id", id);
-    setTodos(todos.filter((t) => t.id !== id));
+    await getClient().from("todos").delete().eq("id", id);
+    setTodos((prev) => prev.filter((t) => t.id !== id));
   };
 
   const clearCompleted = async () => {
     const ids = todos.filter((t) => t.done).map((t) => t.id);
-    await supabase.from("todos").delete().in("id", ids);
-    setTodos(todos.filter((t) => !t.done));
+    await getClient().from("todos").delete().in("id", ids);
+    setTodos((prev) => prev.filter((t) => !t.done));
   };
 
   const remaining = todos.filter((t) => !t.done).length;
@@ -58,7 +58,6 @@ export default function Home() {
   return (
     <main className="min-h-screen flex items-start justify-center pt-20 px-4">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
             やること
@@ -70,7 +69,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Input */}
         <div className="flex gap-2 mb-6">
           <input
             type="text"
@@ -88,7 +86,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Todo list */}
         {loading ? (
           <div className="text-center py-16 text-slate-300">
             <p className="text-sm">読み込み中...</p>
@@ -107,7 +104,6 @@ export default function Home() {
                   todo.done ? "border-slate-100 opacity-50" : "border-slate-100"
                 }`}
               >
-                {/* Checkbox */}
                 <button
                   onClick={() => toggleTodo(todo.id, todo.done)}
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
@@ -134,7 +130,6 @@ export default function Home() {
                   )}
                 </button>
 
-                {/* Text */}
                 <span
                   className={`flex-1 text-sm ${
                     todo.done ? "line-through text-slate-400" : "text-slate-700"
@@ -143,7 +138,6 @@ export default function Home() {
                   {todo.text}
                 </span>
 
-                {/* Delete */}
                 <button
                   onClick={() => deleteTodo(todo.id)}
                   className="text-slate-300 hover:text-rose-400 transition-colors p-1 rounded-lg hover:bg-rose-50"
@@ -168,7 +162,6 @@ export default function Home() {
           </ul>
         )}
 
-        {/* Clear completed */}
         {todos.some((t) => t.done) && (
           <button
             onClick={clearCompleted}
